@@ -1,0 +1,104 @@
+{% extends 'base.html' %}
+{% block title %}My Dashboard - Employee Task Manager{% endblock %}
+{% block page_title %}Welcome, {{ user.name }}{% endblock %}
+
+{% block content %}
+
+<div class="cards-grid">
+    <div class="stat-card">
+        <div class="stat-icon bg-orange">⏳</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ pending }}</span>
+            <span class="stat-label">Pending Tasks</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon bg-cyan">🔄</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ in_progress }}</span>
+            <span class="stat-label">In Progress</span>
+        </div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon bg-green">✅</div>
+        <div class="stat-info">
+            <span class="stat-value">{{ completed }}</span>
+            <span class="stat-label">Completed Tasks</span>
+        </div>
+    </div>
+</div>
+
+<div class="tables-grid">
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Upcoming Deadlines (Next 7 Days)</h3>
+            <a href="{{ url_for('employee.my_tasks') }}" class="link">View all tasks →</a>
+        </div>
+        <div class="table-wrapper">
+            <table class="data-table">
+                <thead>
+                    <tr><th>Title</th><th>Priority</th><th>Status</th><th>Due Date</th></tr>
+                </thead>
+                <tbody>
+                    {% for task in upcoming_deadlines %}
+                    <tr>
+                        <td>{{ task.title }}</td>
+                        <td><span class="badge badge-{{ task.priority|lower }}">{{ task.priority }}</span></td>
+                        <td><span class="badge status-{{ task.status|lower|replace(' ', '-') }}">{{ task.status }}</span></td>
+                        <td>{{ task.due_date.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% else %}
+                    <tr><td colspan="4" class="empty-row">No upcoming deadlines. 🎉</td></tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="panel">
+        <div class="panel-header">
+            <h3>Recent Activity</h3>
+        </div>
+        <ul class="activity-list">
+            {% for log in recent_activity %}
+            <li><span class="activity-dot"></span>{{ log.action }}<time>{{ log.timestamp.strftime('%b %d, %H:%M') }}</time></li>
+            {% else %}
+            <li class="empty-row">No recent activity.</li>
+            {% endfor %}
+        </ul>
+    </div>
+</div>
+
+<div class="panel">
+    <div class="panel-header">
+        <h3>Recent Tasks</h3>
+        <a href="{{ url_for('employee.my_tasks') }}" class="link">View all →</a>
+    </div>
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr><th>Title</th><th>Priority</th><th>Status</th><th>Due Date</th><th>Progress</th></tr>
+            </thead>
+            <tbody>
+                {% for task in recent_tasks %}
+                <tr>
+                    <td>{{ task.title }}</td>
+                    <td><span class="badge badge-{{ task.priority|lower }}">{{ task.priority }}</span></td>
+                    <td><span class="badge status-{{ task.status|lower|replace(' ', '-') }}">{{ task.status }}</span></td>
+                    <td>{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '-' }}</td>
+                    <td>
+                        <div class="progress-bar">
+                            <div class="progress-fill progress-{{ task.status|lower|replace(' ', '-') }}"
+                                 style="width: {{ '100' if task.status == 'Completed' else ('50' if task.status == 'In Progress' else '10') }}%;"></div>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="5" class="empty-row">No tasks assigned yet.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+{% endblock %}

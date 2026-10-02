@@ -1,0 +1,191 @@
+{% extends 'base.html' %}
+{% block title %}Tasks - Employee Task Manager{% endblock %}
+{% block page_title %}{{ 'My Tasks' if employee_view else 'Tasks' }}{% endblock %}
+
+{% block content %}
+
+<div class="panel">
+    <div class="panel-header">
+        <h3>{{ 'My Tasks' if employee_view else 'All Tasks' }}</h3>
+        {% if not employee_view %}
+        <a href="{{ url_for('admin.add_task') }}" class="btn btn-primary">+ Assign Task</a>
+        {% endif %}
+    </div>
+
+    <form method="GET" class="filter-bar">
+        {% if not employee_view %}
+        <input type="text" name="search" placeholder="Search by title..." value="{{ search }}" class="search-input">
+        {% endif %}
+        <select name="priority">
+            <option value="">All Priorities</option>
+            <option value="Low" {{ 'selected' if priority == 'Low' }}>Low</option>
+            <option value="Medium" {{ 'selected' if priority == 'Medium' }}>Medium</option>
+            <option value="High" {{ 'selected' if priority == 'High' }}>High</option>
+        </select>
+        <select name="status">
+            <option value="">All Statuses</option>
+            <option value="Pending" {{ 'selected' if status == 'Pending' }}>Pending</option>
+            <option value="In Progress" {{ 'selected' if status == 'In Progress' }}>In Progress</option>
+            <option value="Completed" {{ 'selected' if status == 'Completed' }}>Completed</option>
+        </select>
+        {% if not employee_view %}
+        <select name="due">
+            <option value="">Any Due Date</option>
+            <option value="overdue" {{ 'selected' if due == 'overdue' }}>Overdue</option>
+            <option value="today" {{ 'selected' if due == 'today' }}>Due Today</option>
+            <option value="week" {{ 'selected' if due == 'week' }}>Due This Week</option>
+        </select>
+        {% endif %}
+        <select name="sort">
+            <option value="latest" {{ 'selected' if sort == 'latest' }}>Latest First</option>
+            <option value="oldest" {{ 'selected' if sort == 'oldest' }}>Oldest First</option>
+            <option value="due_date" {{ 'selected' if sort == 'due_date' }}>Due Date</option>
+            <option value="priority" {{ 'selected' if sort == 'priority' }}>Priority</option>
+        </select>
+        <button type="submit" class="btn btn-secondary">Apply</button>
+        <a href="{{ url_for('employee.my_tasks') if employee_view else url_for('admin.tasks') }}" class="btn btn-ghost">Reset</a>
+    </form>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    {% if not employee_view %}<th>Assigned To</th>{% endif %}
+                    <th>Priority</th><th>Status</th><th>Due Date</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for task in tasks %}
+                <tr class="{{ 'overdue-row' if task.is_overdue() }}">
+                    <td>
+                        {{ task.title }}
+                        {% if task.is_overdue() %}<span class="badge badge-high">Overdue</span>{% endif %}
+                    </td>
+                    {% if not employee_view %}<td>{{ task.employee.name if task.employee else '-' }}</td>{% endif %}
+                    <td><span class="badge badge-{{ task.priority|lower }}">{{ task.priority }}</span></td>
+                    <td><span class="badge status-{{ task.status|lower|replace(' ', '-') }}">{{ task.status }}</span></td>
+                    <td>{{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '-' }}</td>
+                    <td class="actions-cell">
+                        <button class="btn btn-sm btn-secondary" onclick="openTaskModal({{ task.id }})">View</button>
+                        {% if not employee_view %}
+                        <a href="{{ url_for('admin.edit_task', task_id=task.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDelete('{{ url_for('admin.delete_task', task_id=task.id) }}', 'Delete this task?')">Delete</button>
+                        {% endif %}
+                    </td>
+                </tr>
+
+                <!-- Task detail modal content (hidden template) -->
+                <tr class="hidden">
+                    <td colspan="6">
+                        <div id="task-modal-{{ task.id }}" class="task-detail" data-title="{{ task.title }}">
+                            <p><strong>Description:</strong> {{ task.description or 'No description provided.' }}</p>
+                            <p><strong>Assigned To:</strong> {{ task.employee.name if task.employee else '-' }}</p>
+                            <p><strong>Assigned By:</strong> {{ task.assigner.name if task.assigner else '-' }}</p>
+                            <p><strong>Priority:</strong> {{ task.priority }} &nbsp; <strong>Status:</strong> {{ task.status }}</p>
+                            <p><strong>Due:</strong> {{ task.due_date.strftime('%Y-%m-%d') if task.due_date else '-' }}
+                               &nbsp; <strong>Created:</strong> {{ task.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+
+                            {% if employee_view %}
+                            <hr>
+                            <form method="POST" action="{{ url_for('employee.update_task_status', task_id=task.id) }}" class="inline-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <label>Update Status:</label>
+                                <select name="status" onchange="this.form.submit()">
+                                    <option value="Pending" {{ 'selected' if task.status == 'Pending' }}>Pending</option>
+                                    <option value="In Progress" {{ 'selected' if task.status == 'In Progress' }}>In Progress</option>
+                                    <option value="Completed" {{ 'selected' if task.status == 'Completed' }}>Completed</option>
+                                </select>
+                            </form>
+                            {% if task.status != 'Completed' %}
+                            <form method="POST" action="{{ url_for('employee.mark_completed', task_id=task.id) }}" class="inline-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-sm btn-success">Mark Completed</button>
+                            </form>
+                            {% endif %}
+                            {% endif %}
+
+                            <hr>
+                            <strong>Comments</strong>
+                            <ul class="comment-list">
+                                {% for c in task.comment_list() %}
+                                <li>{{ c }}</li>
+                                {% else %}
+                                <li class="empty-row">No comments yet.</li>
+                                {% endfor %}
+                            </ul>
+
+                            {% if employee_view %}
+                            <form method="POST" action="{{ url_for('employee.add_comment', task_id=task.id) }}" class="inline-form">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="text" name="comment" placeholder="Add a comment..." required>
+                                <button type="submit" class="btn btn-sm btn-primary">Post</button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="6" class="empty-row">No tasks found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if pagination and pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="?page={{ pagination.prev_num }}&search={{ search }}&status={{ status }}&priority={{ priority }}&due={{ due }}&sort={{ sort }}">‹ Prev</a>
+        {% endif %}
+        {% for p in pagination.iter_pages() %}
+            {% if p %}
+                <a href="?page={{ p }}&search={{ search }}&status={{ status }}&priority={{ priority }}&due={{ due }}&sort={{ sort }}" class="{{ 'active' if p == pagination.page }}">{{ p }}</a>
+            {% else %}
+                <span class="ellipsis">…</span>
+            {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <a href="?page={{ pagination.next_num }}&search={{ search }}&status={{ status }}&priority={{ priority }}&due={{ due }}&sort={{ sort }}">Next ›</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="modal-overlay hidden" id="taskModal">
+    <div class="modal modal-lg">
+        <div class="modal-header">
+            <h3 id="taskModalTitle">Task Details</h3>
+            <button class="icon-btn" onclick="closeTaskModal()">✕</button>
+        </div>
+        <div class="modal-body" id="taskModalBody"></div>
+    </div>
+</div>
+
+<div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal">
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeConfirmModal()">Cancel</button>
+            <form id="confirmForm" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-danger">Confirm</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function openTaskModal(taskId) {
+    const source = document.getElementById('task-modal-' + taskId);
+    document.getElementById('taskModalTitle').textContent = source.dataset.title;
+    document.getElementById('taskModalBody').innerHTML = source.innerHTML;
+    document.getElementById('taskModal').classList.remove('hidden');
+}
+function closeTaskModal() {
+    document.getElementById('taskModal').classList.add('hidden');
+}
+</script>
+{% endblock %}

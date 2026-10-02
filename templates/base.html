@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{% block title %}Employee Task Manager{% endblock %}</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+{% block extra_css %}{% endblock %}
+</head>
+<body>
+
+<div id="loading-spinner" class="spinner-overlay hidden">
+    <div class="spinner"></div>
+</div>
+
+<div id="toast-container" class="toast-container"></div>
+
+<div class="app-shell">
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span class="brand">📋 TaskManager</span>
+            <button id="sidebarClose" class="icon-btn mobile-only" aria-label="Close sidebar">✕</button>
+        </div>
+        <nav class="sidebar-nav">
+            {% if current_user_role == 'admin' %}
+            <a href="{{ url_for('admin.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.dashboard' }}">🏠 Dashboard</a>
+            <a href="{{ url_for('admin.employees') }}" class="nav-link {{ 'active' if request.endpoint in ['admin.employees','admin.add_employee','admin.edit_employee'] }}">👥 Employees</a>
+            <a href="{{ url_for('admin.tasks') }}" class="nav-link {{ 'active' if request.endpoint in ['admin.tasks','admin.add_task','admin.edit_task'] }}">📝 Tasks</a>
+            <a href="{{ url_for('admin.task_progress', view='completed') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.task_progress' }}">✅ Task Progress</a>
+            <a href="{{ url_for('admin.activity_logs') }}" class="nav-link {{ 'active' if request.endpoint == 'admin.activity_logs' }}">🗂️ Activity Logs</a>
+            <a href="{{ url_for('admin.export_tasks_csv') }}" class="nav-link">⬇️ Export Tasks CSV</a>
+            {% elif current_user_role == 'employee' %}
+            <a href="{{ url_for('employee.dashboard') }}" class="nav-link {{ 'active' if request.endpoint == 'employee.dashboard' }}">🏠 Dashboard</a>
+            <a href="{{ url_for('employee.my_tasks') }}" class="nav-link {{ 'active' if request.endpoint == 'employee.my_tasks' }}">📝 My Tasks</a>
+            <a href="{{ url_for('employee.profile') }}" class="nav-link {{ 'active' if request.endpoint in ['employee.profile','employee.edit_profile'] }}">👤 Profile</a>
+            <a href="{{ url_for('employee.change_password') }}" class="nav-link {{ 'active' if request.endpoint == 'employee.change_password' }}">🔒 Change Password</a>
+            {% endif %}
+        </nav>
+    </aside>
+
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <!-- Main content -->
+    <div class="main-content">
+        <header class="topbar">
+            <button id="sidebarToggle" class="icon-btn mobile-only" aria-label="Open sidebar">☰</button>
+            <h1 class="page-title">{% block page_title %}Dashboard{% endblock %}</h1>
+            <div class="topbar-actions">
+                <button id="darkModeToggle" class="icon-btn" title="Toggle dark mode">🌙</button>
+                {% if current_user_role %}
+                <div class="profile-dropdown">
+                    <button class="profile-btn" id="profileBtn">
+                        <img src="{{ url_for('uploaded_file', filename=current_user_image or 'default.png') }}"
+                             alt="Profile" class="avatar-sm"
+                             onerror="this.src='{{ url_for('static', filename='images/default.png') }}'">
+                        <span class="profile-name">{{ current_user_name }}</span>
+                        <span class="caret">▾</span>
+                    </button>
+                    <div class="profile-menu" id="profileMenu">
+                        {% if current_user_role == 'employee' %}
+                        <a href="{{ url_for('employee.profile') }}">👤 My Profile</a>
+                        <a href="{{ url_for('employee.change_password') }}">🔒 Change Password</a>
+                        {% endif %}
+                        <a href="{{ url_for('auth.logout') }}">🚪 Logout</a>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </header>
+
+        <main class="content-area">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                    {% for category, message in messages %}
+                        <div class="flash flash-{{ category }}" data-autotoast="{{ category }}" data-msg="{{ message }}">
+                            {{ message }}
+                            <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.3/chart.umd.min.js"></script>
+<script src="{{ url_for('static', filename='js/script.js') }}"></script>
+<script src="{{ url_for('static', filename='js/validation.js') }}"></script>
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+{% block extra_js %}{% endblock %}
+</body>
+</html>

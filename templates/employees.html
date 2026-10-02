@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Employees - Employee Task Manager{% endblock %}
+{% block page_title %}Employees{% endblock %}
+
+{% block content %}
+
+<div class="panel">
+    <div class="panel-header">
+        <h3>All Employees</h3>
+        <a href="{{ url_for('admin.add_employee') }}" class="btn btn-primary">+ Add Employee</a>
+    </div>
+
+    <form method="GET" class="filter-bar">
+        <input type="text" name="search" placeholder="Search name, email, department..." value="{{ search }}" class="search-input">
+        <select name="department">
+            <option value="">All Departments</option>
+            {% for dept in departments %}
+            <option value="{{ dept }}" {{ 'selected' if department == dept }}>{{ dept }}</option>
+            {% endfor %}
+        </select>
+        <select name="sort">
+            <option value="latest" {{ 'selected' if sort == 'latest' }}>Latest First</option>
+            <option value="oldest" {{ 'selected' if sort == 'oldest' }}>Oldest First</option>
+            <option value="name" {{ 'selected' if sort == 'name' }}>Name (A-Z)</option>
+        </select>
+        <button type="submit" class="btn btn-secondary">Apply</button>
+        <a href="{{ url_for('admin.employees') }}" class="btn btn-ghost">Reset</a>
+    </form>
+
+    <div class="table-wrapper">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Photo</th><th>Name</th><th>Email</th><th>Phone</th>
+                    <th>Department</th><th>Designation</th><th>Status</th><th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for emp in employees %}
+                <tr>
+                    <td><img class="avatar-sm" src="{{ url_for('uploaded_file', filename=emp.profile_image or 'default.png') }}"
+                              onerror="this.src='{{ url_for('static', filename='images/default.png') }}'" alt=""></td>
+                    <td>{{ emp.name }}</td>
+                    <td>{{ emp.email }}</td>
+                    <td>{{ emp.phone or '-' }}</td>
+                    <td>{{ emp.department or '-' }}</td>
+                    <td>{{ emp.designation or '-' }}</td>
+                    <td><span class="badge {{ 'status-completed' if emp.status == 'active' else 'status-pending' }}">{{ emp.status }}</span></td>
+                    <td class="actions-cell">
+                        <a href="{{ url_for('admin.edit_employee', employee_id=emp.id) }}" class="btn btn-sm btn-secondary">Edit</a>
+                        <button class="btn btn-sm btn-danger" onclick="confirmDelete('{{ url_for('admin.delete_employee', employee_id=emp.id) }}', 'Delete this employee?')">Delete</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr><td colspan="8" class="empty-row">No employees found.</td></tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    {% if pagination and pagination.pages > 1 %}
+    <div class="pagination">
+        {% if pagination.has_prev %}
+        <a href="{{ url_for('admin.employees', page=pagination.prev_num, search=search, department=department, sort=sort) }}">‹ Prev</a>
+        {% endif %}
+        {% for p in pagination.iter_pages() %}
+            {% if p %}
+                <a href="{{ url_for('admin.employees', page=p, search=search, department=department, sort=sort) }}" class="{{ 'active' if p == pagination.page }}">{{ p }}</a>
+            {% else %}
+                <span class="ellipsis">…</span>
+            {% endif %}
+        {% endfor %}
+        {% if pagination.has_next %}
+        <a href="{{ url_for('admin.employees', page=pagination.next_num, search=search, department=department, sort=sort) }}">Next ›</a>
+        {% endif %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="modal-overlay hidden" id="confirmModal">
+    <div class="modal">
+        <p id="confirmMessage">Are you sure?</p>
+        <div class="modal-actions">
+            <button class="btn btn-ghost" onclick="closeConfirmModal()">Cancel</button>
+            <form id="confirmForm" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <button type="submit" class="btn btn-danger">Confirm</button>
+        </form>
+        </div>
+    </div>
+</div>
+
+{% endblock %}

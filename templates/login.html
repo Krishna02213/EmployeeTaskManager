@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login - Employee Task Manager</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+<body class="login-body">
+
+<div id="toast-container" class="toast-container"></div>
+
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-brand">
+            <span class="login-logo">📋</span>
+            <h1>Employee Task Manager</h1>
+            <p>Sign in to manage tasks and track progress</p>
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash flash-{{ category }}">
+                        {{ message }}
+                        <button class="flash-close" onclick="this.parentElement.remove()">✕</button>
+                    </div>
+                {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form method="POST" action="{{ url_for('auth.login') }}" id="loginForm" novalidate>
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label for="email">Email Address</label>
+                <input type="email" id="email" name="email" placeholder="you@example.com" required autofocus>
+                <span class="error-text" id="emailError"></span>
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <div class="password-wrapper">
+                    <input type="password" id="password" name="password" placeholder="Enter your password" required>
+                    <button type="button" class="toggle-password" id="togglePassword">👁️</button>
+                </div>
+                <span class="error-text" id="passwordError"></span>
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">Sign In</button>
+        </form>
+
+        <div class="login-hint">
+            <strong>Default Admin Login</strong>
+            <p>Email: admin@example.com &nbsp;|&nbsp; Password: Admin@123</p>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('loginForm').addEventListener('submit', function (e) {
+    let valid = true;
+    const email = document.getElementById('email');
+    const password = document.getElementById('password');
+    const emailError = document.getElementById('emailError');
+    const passwordError = document.getElementById('passwordError');
+    emailError.textContent = '';
+    passwordError.textContent = '';
+
+    const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailPattern.test(email.value.trim())) {
+        emailError.textContent = 'Please enter a valid email address.';
+        valid = false;
+    }
+    if (password.value.length < 1) {
+        passwordError.textContent = 'Password is required.';
+        valid = false;
+    }
+    if (!valid) e.preventDefault();
+});
+
+document.getElementById('togglePassword').addEventListener('click', function () {
+    const pw = document.getElementById('password');
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+});
+</script>
+</body>
+</html>

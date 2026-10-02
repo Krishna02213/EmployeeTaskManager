@@ -1,0 +1,68 @@
+{% extends 'base.html' %}
+{% block title %}{{ 'Edit Task' if task else 'Assign Task' }} - Employee Task Manager{% endblock %}
+{% block page_title %}{{ 'Edit Task' if task else 'Assign Task' }}{% endblock %}
+
+{% block content %}
+<div class="panel form-panel">
+    <form method="POST" id="taskForm" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <div class="form-group">
+            <label for="title">Task Title *</label>
+            <input type="text" id="title" name="title" required
+                   value="{{ (form_data.title if form_data else task.title) or '' }}">
+        </div>
+
+        <div class="form-group">
+            <label for="description">Description</label>
+            <textarea id="description" name="description" rows="4">{{ (form_data.description if form_data else task.description) or '' }}</textarea>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="assigned_to">Assign To *</label>
+                <select id="assigned_to" name="assigned_to" required>
+                    <option value="">Select Employee</option>
+                    {% for emp in employees %}
+                    <option value="{{ emp.id }}"
+                        {{ 'selected' if (form_data and form_data.assigned_to|string == emp.id|string) or (task and task.assigned_to == emp.id) }}>
+                        {{ emp.name }} ({{ emp.department or 'N/A' }})
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="priority">Priority *</label>
+                <select id="priority" name="priority" required>
+                    <option value="Low" {{ 'selected' if (form_data.priority if form_data else task.priority if task else '') == 'Low' }}>Low</option>
+                    <option value="Medium" {{ 'selected' if (form_data.priority if form_data else task.priority if task else 'Medium') == 'Medium' }}>Medium</option>
+                    <option value="High" {{ 'selected' if (form_data.priority if form_data else task.priority if task else '') == 'High' }}>High</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group">
+                <label for="due_date">Due Date</label>
+                <input type="date" id="due_date" name="due_date"
+                       value="{{ (form_data.due_date if form_data else (task.due_date.strftime('%Y-%m-%d') if task and task.due_date else '')) }}">
+            </div>
+            {% if task %}
+            <div class="form-group">
+                <label for="status">Status</label>
+                <select id="status" name="status">
+                    <option value="Pending" {{ 'selected' if task.status == 'Pending' }}>Pending</option>
+                    <option value="In Progress" {{ 'selected' if task.status == 'In Progress' }}>In Progress</option>
+                    <option value="Completed" {{ 'selected' if task.status == 'Completed' }}>Completed</option>
+                </select>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="form-actions">
+            <a href="{{ url_for('admin.tasks') }}" class="btn btn-ghost">Cancel</a>
+            <button type="submit" class="btn btn-primary">{{ 'Save Changes' if task else 'Assign Task' }}</button>
+        </div>
+    </form>
+</div>
+{% endblock %}
